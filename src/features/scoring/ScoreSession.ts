@@ -70,11 +70,18 @@ export class ScoreSession {
     if (typeof window !== 'undefined') window.addEventListener('online', this.handleOnline)
   }
 
+  /** Called when the console unmounts. Unsent actions keep flushing in the background so leaving the page never loses taps. */
   dispose() {
-    this.disposed = true
-    if (this.timer) clearTimeout(this.timer)
-    if (typeof window !== 'undefined') window.removeEventListener('online', this.handleOnline)
     this.listeners.clear()
+    if (this.queue.length === 0) {
+      this.disposed = true
+      if (this.timer) clearTimeout(this.timer)
+      if (typeof window !== 'undefined') window.removeEventListener('online', this.handleOnline)
+    }
+  }
+
+  get hasUnsaved() {
+    return this.queue.length > 0
   }
 
   // ---- external store plumbing
@@ -244,6 +251,7 @@ export class ScoreSession {
     this.retries = 0
     this.sync = this.queue.length ? 'saving' : 'saved'
     this.emit()
+    if (this.listeners.size === 0 && this.queue.length === 0) this.dispose() // detached session finished flushing
     void this.pump()
   }
 

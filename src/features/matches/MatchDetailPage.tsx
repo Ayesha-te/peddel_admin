@@ -52,7 +52,9 @@ export default function MatchDetailPage() {
     setPdfBusy(true)
     try { await downloadFile(`/api/admin/reports/matches/${m.id}/pdf/`, `match-result-${m.reference}.pdf`) } catch (e) { toast.fromError(e) } finally { setPdfBusy(false) }
   }
-  const copy = async () => { await navigator.clipboard?.writeText(m.shareUrl); toast.ok('Link copied') }
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(m.shareUrl); toast.ok('Link copied') } catch { toast.err('Could not copy automatically. Select the link above and copy it.') }
+  }
 
   return (
     <>

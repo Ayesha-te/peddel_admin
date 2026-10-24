@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 import { AlertTriangle, ArrowLeft, CheckCircle2, CloudOff, Maximize2, Minimize2, Flag, Pause, Play, RefreshCw, Undo2, Wifi, WifiOff } from 'lucide-react'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
@@ -51,6 +51,13 @@ export default function ScoreConsolePage() {
   const { session, view } = useScoreSession(match, () => void reconcile())
   sessionRef.current = session
   const online = useOnline()
+  const unsaved = (view?.pending ?? 0) > 0
+  useEffect(() => {
+    if (!unsaved) return
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [unsaved])
   const wsUp = useMatchSocket(match?.publicId, (snap) => session?.adopt({ status: snap.status, revision: snap.revision, state: snap.state, config: snap.config, durationSeconds: snap.durationSeconds }))
   const seconds = useClock(view?.status === 'live', view?.durationSeconds ?? 0, view?.receivedAt ?? 0)
 

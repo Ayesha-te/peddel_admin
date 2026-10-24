@@ -74,8 +74,8 @@ export function MatchFormModal({ open, onClose, match, tournamentId, onSaved }: 
     { invalidate: ['/api/admin/matches', '/api/admin/dashboard', '/api/admin/tournaments'], success: editing ? 'Match updated' : 'Match created', onSuccess: (m) => { onSaved?.(m); onClose() } },
   )
 
-  const submit = handleSubmit((v) => {
-    setSubmitted(true)
+  const submit = () => { setSubmitted(true); void submitForm() }
+  const submitForm = handleSubmit((v) => {
     const needTeams = !editing
     const ea = needTeams ? sideError(a) : null
     const eb = needTeams ? sideError(b) : null

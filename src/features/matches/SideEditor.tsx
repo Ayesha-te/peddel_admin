@@ -1,5 +1,4 @@
 import clsx from 'clsx'
-import { useState } from 'react'
 import { Field, Input, Select } from '@/components/ui'
 import { useGet } from '@/hooks/query'
 import type { Paginated, Player, Team } from '@/types'
@@ -31,8 +30,7 @@ export function sideError(v: SideValue): string | null {
 export function SideEditor({ label, value, onChange, error }: { label: string; value: SideValue; onChange: (v: SideValue) => void; error?: string | null }) {
   const { data: teams } = useGet<Paginated<Team>>('/api/admin/teams/', { page_size: 200 })
   const { data: players } = useGet<Paginated<Player>>('/api/admin/players/', { page_size: 200 })
-  const [touched, setTouched] = useState(false)
-  const set = (patch: Partial<SideValue>) => { setTouched(true); onChange({ ...value, ...patch }) }
+  const set = (patch: Partial<SideValue>) => onChange({ ...value, ...patch })
   const setPlayer = (i: number, patch: Partial<SideValue['players'][number]>) =>
     set({ players: value.players.map((p, j) => (j === i ? { ...p, ...patch } : p)) })
 
@@ -75,7 +73,7 @@ export function SideEditor({ label, value, onChange, error }: { label: string; v
           ))}
         </div>
       )}
-      {touched && error && <p role="alert" className="mt-2 text-xs font-medium text-rose-600">{error}</p>}
+      {error && <p role="alert" className="mt-2 text-xs font-medium text-rose-600">{error}</p>}
     </fieldset>
   )
 }

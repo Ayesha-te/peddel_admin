@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-100 font-sans text-slate-800 antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex min-h-[40px] select-none items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-court-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-ink-900 text-white shadow-card hover:bg-ink-700;
+  }
+  .btn-brand {
+    @apply btn bg-court-600 text-white shadow-card hover:bg-court-700;
+  }
+  .btn-secondary {
+    @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
+  }
+  .btn-ghost {
+    @apply btn text-slate-600 hover:bg-slate-200/60;
+  }
+  .btn-danger {
+    @apply btn bg-rose-600 text-white hover:bg-rose-700;
+  }
+  .btn-sm {
+    @apply min-h-[32px] px-3 text-xs;
+  }
+  .input {
+    @apply block min-h-[40px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400
+      focus:border-court-500 focus:outline-none focus:ring-2 focus:ring-court-500/30 disabled:bg-slate-100;
+  }
+  textarea.input {
+    @apply py-2;
+  }
+  .label {
+    @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500;
+  }
+  .card {
+    @apply rounded-xl border border-slate-200 bg-white shadow-card;
+  }
+  .th {
+    @apply whitespace-nowrap bg-slate-50 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500;
+  }
+  .td {
+    @apply px-4 py-3 text-sm;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+}
+
+/* Scoring console */
+.score-num {
+  font-family: 'Barlow Condensed', Inter, sans-serif;
+  font-variant-numeric: tabular-nums;
+  line-height: 0.9;
+}
+
+@keyframes pop {
+  0% { transform: scale(0.92); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.pop { animation: pop 0.14s ease-out; }
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+.skeleton { @apply relative overflow-hidden rounded-md bg-slate-200; }
+.skeleton::after {
+  content: '';
+  @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/60 to-transparent;
+  animation: shimmer 1.2s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pop, .skeleton::after { animation: none; }
+}

@@ -24,6 +24,8 @@ async function step(page: Page, name: string, fn: () => Promise<void>) {
   }
 }
 
+const firstRow = (page: Page, text: string) => expect(page.locator('tbody tr').first()).toContainText(text)
+
 test('admin UI sweep: every page and button', async ({ page }) => {
   test.setTimeout(480_000)
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text().slice(0, 160)) })
@@ -36,7 +38,7 @@ test('admin UI sweep: every page and button', async ({ page }) => {
     await page.getByLabel('Password').fill(PASS)
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
-    for (const n of ['Tournaments', 'Upcoming matches', 'Live matches', 'Completed matches', 'Registered players', 'Registered teams']) await expect(page.getByText(n, { exact: true })).toBeVisible()
+    for (const n of ['Tournaments', 'Upcoming matches', 'Live matches', 'Completed matches', 'Registered players', 'Registered teams']) await expect(page.locator('main').getByText(n, { exact: true })).toBeVisible()
   })
 
   // ---------- Players
@@ -58,7 +60,7 @@ test('admin UI sweep: every page and button', async ({ page }) => {
   })
   await step(page, 'players: search + edit', async () => {
     await page.getByLabel('Search Players').fill(`Sweep${run}`)
-    await expect(page.getByText(`Sweep${run} Alpha`)).toBeVisible()
+    await firstRow(page, `Sweep${run} Alpha`)
     await page.getByRole('button', { name: 'Edit Player' }).first().click()
     await page.getByLabel('Last name').fill('Alpha2')
     await page.getByRole('button', { name: 'Save', exact: true }).click()
@@ -89,6 +91,7 @@ test('admin UI sweep: every page and button', async ({ page }) => {
   })
   await step(page, 'teams: edit name', async () => {
     await page.getByLabel('Search Teams').fill(`Sweep Team ${run}`)
+    await firstRow(page, `Sweep Team ${run}`)
     await page.getByRole('button', { name: 'Edit Team' }).first().click()
     await page.getByLabel('Team name').fill(`Sweep Team ${run} B`)
     await page.getByRole('button', { name: 'Save', exact: true }).click()
@@ -102,10 +105,12 @@ test('admin UI sweep: every page and button', async ({ page }) => {
     await page.getByLabel('Court name').fill(`Sweep Court ${run}`)
     await page.getByRole('button', { name: 'Save', exact: true }).click()
     await page.getByLabel('Search Courts').fill(`Sweep Court ${run}`)
+    await firstRow(page, `Sweep Court ${run}`)
     await page.getByRole('button', { name: 'Edit Court' }).first().click()
     await page.getByLabel('Venue').fill('Sweep Venue')
     await page.getByRole('button', { name: 'Save', exact: true }).click()
     await expect(page.getByText('Sweep Venue')).toBeVisible()
+    await firstRow(page, `Sweep Court ${run}`)
     await page.getByRole('button', { name: 'Delete Court' }).first().click()
     await page.getByRole('button', { name: 'Delete', exact: true }).click()
     await expect(page.getByText(`Sweep Court ${run}`)).toHaveCount(0)
@@ -119,7 +124,7 @@ test('admin UI sweep: every page and button', async ({ page }) => {
     await page.getByLabel('Password', { exact: true }).fill('Sweep#Pass2026')
     await page.getByRole('button', { name: 'Save', exact: true }).click()
     await page.getByLabel('Search Umpires').fill(`sweepump${run}`)
-    await expect(page.getByText(`sweepump${run}`)).toBeVisible()
+    await firstRow(page, `sweepump${run}`)
     await page.getByRole('button', { name: 'Edit Umpire' }).first().click()
     await page.getByLabel('Last name').fill('Tester')
     await page.getByRole('button', { name: 'Save', exact: true }).click()
@@ -157,6 +162,9 @@ test('admin UI sweep: every page and button', async ({ page }) => {
     await first.nth(1).fill(`QAc2${run}`)
     await page.getByRole('button', { name: 'Create match' }).click()
     await expect(page.getByRole('heading', { name: `QA Sweep Existing ${run}` })).toBeVisible()
+    await page.getByRole('button', { name: 'Delete match' }).click()
+    await page.getByRole('button', { name: 'Delete', exact: true }).click()
+    await expect(page).toHaveURL(/\/matches$/)
   })
   await step(page, 'match page: info, share link, QR, edit, status buttons', async () => {
     await page.goto(matchUrl)
@@ -258,16 +266,18 @@ test('admin UI sweep: every page and button', async ({ page }) => {
   await step(page, 'cleanup: delete sweep team and players', async () => {
     await page.getByRole('link', { name: 'Teams', exact: true }).click()
     await page.getByLabel('Search Teams').fill(`Sweep Team ${run}`)
+    await firstRow(page, `Sweep Team ${run}`)
     await page.getByRole('button', { name: 'Delete Team' }).first().click()
     await page.getByRole('button', { name: 'Delete', exact: true }).click()
     await expect(page.getByText(`Sweep Team ${run} B`)).toHaveCount(0)
     await page.getByRole('link', { name: 'Players' }).click()
     for (const n of ['Alpha2', 'Beta']) {
-      await page.getByLabel('Search Players').fill(`Sweep${run}`)
+      await page.getByLabel('Search Players').fill(`Sweep${run} ${n}`)
+      await firstRow(page, `Sweep${run} ${n}`)
+      await expect(page.locator('tbody tr')).toHaveCount(1)
       await page.getByRole('button', { name: 'Delete Player' }).first().click()
       await page.getByRole('button', { name: 'Delete', exact: true }).click()
-      await page.waitForTimeout(600)
-      void n
+      await expect(page.getByText(`Sweep${run} ${n}`)).toHaveCount(0)
     }
   })
 

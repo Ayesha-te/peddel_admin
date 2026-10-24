@@ -79,7 +79,7 @@ export default function ScoreConsolePage() {
   const teams = match.teams
 
   return (
-    <div ref={wrapRef} className="mx-auto flex min-h-screen max-w-4xl flex-col gap-4 bg-ink-950 p-3 sm:p-6">
+    <div ref={wrapRef} className="mx-auto flex min-h-screen min-w-0 max-w-4xl flex-col gap-4 overflow-x-hidden bg-ink-950 p-3 sm:p-6">
       <header className="space-y-2">
         <div className="flex items-center gap-2">
           <Link to={`/matches/${match.id}`} className="rounded-lg p-2 text-slate-400 hover:bg-white/10 hover:text-white" aria-label="Back to match"><ArrowLeft className="h-5 w-5" /></Link>
@@ -122,20 +122,20 @@ export default function ScoreConsolePage() {
         </div>
       ) : (
         <>
-          <div className="grid flex-1 grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid min-w-0 flex-1 grid-cols-2 gap-3 sm:gap-4">
             {([0, 1] as const).map((t) => (
               <button
                 key={t}
                 disabled={disabled}
                 onClick={() => session.tap(t)}
                 className={clsx(
-                  'flex min-h-[170px] flex-col items-center justify-center gap-2 rounded-2xl p-4 text-center font-extrabold shadow-lg transition active:scale-[0.97] disabled:opacity-40 sm:min-h-[260px]',
+                  'flex min-h-[170px] min-w-0 flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl p-4 text-center font-extrabold shadow-lg transition active:scale-[0.97] disabled:opacity-40 sm:min-h-[260px]',
                   t === 0 ? 'bg-court-500 text-ink-950 hover:bg-court-400' : 'bg-ball-400 text-ink-950 hover:bg-ball-300',
                 )}
                 aria-label={`Point for ${teams[t].name}`}
               >
                 <span className="score-num text-5xl sm:text-7xl">+1</span>
-                <span className="line-clamp-2 text-base sm:text-xl">{teams[t].name}</span>
+                <span className="line-clamp-2 max-w-full text-base [overflow-wrap:anywhere] sm:text-xl">{teams[t].name}</span>
               </button>
             ))}
           </div>

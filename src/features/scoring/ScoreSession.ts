@@ -64,6 +64,7 @@ export class ScoreSession {
   private cache: View | null = null
   private lastTap = new Map<string, number>()
   private disposed = false
+  private detached = false
 
   constructor(private matchId: number, initial: Omit<Confirmed, 'receivedAt'>, private onReconcile?: () => void) {
     this.confirmed = { ...initial, receivedAt: Date.now() }
@@ -72,12 +73,15 @@ export class ScoreSession {
 
   /** Called when the console unmounts. Unsent actions keep flushing in the background so leaving the page never loses taps. */
   dispose() {
+    this.detached = true
     this.listeners.clear()
-    if (this.queue.length === 0) {
-      this.disposed = true
-      if (this.timer) clearTimeout(this.timer)
-      if (typeof window !== 'undefined') window.removeEventListener('online', this.handleOnline)
-    }
+    if (this.queue.length === 0) this.finalize()
+  }
+
+  private finalize() {
+    this.disposed = true
+    if (this.timer) clearTimeout(this.timer)
+    if (typeof window !== 'undefined') window.removeEventListener('online', this.handleOnline)
   }
 
   get hasUnsaved() {
@@ -251,7 +255,7 @@ export class ScoreSession {
     this.retries = 0
     this.sync = this.queue.length ? 'saving' : 'saved'
     this.emit()
-    if (this.listeners.size === 0 && this.queue.length === 0) this.dispose() // detached session finished flushing
+    if (this.detached && this.queue.length === 0) this.finalize() // detached session finished flushing
     void this.pump()
   }
 

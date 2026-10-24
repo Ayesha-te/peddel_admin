@@ -8,7 +8,7 @@ import { fmtDateTime, scoreline } from '@/utils/format'
 function MatchCard({ m }: { m: Match }) {
   const live = m.status === 'live' || m.status === 'paused'
   return (
-    <article className="card flex flex-col gap-4 p-5">
+    <article className="card flex min-w-0 flex-col gap-4 p-5">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h3 className="truncate font-bold text-slate-900">{m.name}</h3>
@@ -19,7 +19,7 @@ function MatchCard({ m }: { m: Match }) {
       <div className="space-y-1.5 rounded-xl bg-ink-900 p-4 text-white">
         {m.teams.map((t, i) => (
           <div key={i} className="flex items-center justify-between gap-3">
-            <span className="truncate text-sm font-semibold">{t.name}</span>
+            <span className="min-w-0 truncate text-sm font-semibold">{t.name}</span>
             <span className="score-num text-2xl font-bold text-ball-400">{live ? m.display.pointLabels[i] : ''}</span>
           </div>
         ))}

@@ -24,7 +24,7 @@ function Row({ idx, teams, state, display, large }: Props & { idx: 0 | 1 }) {
   return (
     <div className={clsx('flex items-center gap-3 px-4 py-3 sm:gap-5 sm:px-6', winner && 'bg-ball-400/10')}>
       <span className={clsx('h-3 w-3 shrink-0 rounded-full', serving ? 'bg-ball-400 shadow-[0_0_12px_rgba(212,245,60,.8)]' : 'bg-transparent')} title={serving ? 'Serving' : undefined} aria-label={serving ? 'Serving' : undefined} />
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 overflow-hidden">
         <p className={clsx('truncate font-bold leading-tight text-white', large ? 'text-2xl sm:text-4xl' : 'text-lg sm:text-2xl')}>{team.name}{winner && ' 🏆'}</p>
         <p className="truncate text-xs text-slate-400 sm:text-sm">{team.players.map((p) => p.name).join('  ·  ') || '—'}</p>
       </div>

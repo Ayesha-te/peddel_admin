@@ -171,4 +171,25 @@ describe('ScoreSession', () => {
     expect(s.getSnapshot().notice).toMatch(/paused/)
     expect(onReconcile).toHaveBeenCalled()
   })
+
+  it('keeps sending queued taps after the console is closed (no silent loss when navigating away)', async () => {
+    const server = fakeServer()
+    post.mockImplementation(async (p: string, b: any) => { await new Promise((r) => setTimeout(r, 30)); return server.handler(p, b) })
+    const s = start()
+    s.tap(0)
+    await new Promise((r) => setTimeout(r, 130))
+    s.tap(1)
+    s.dispose() // user navigates away with unsent taps
+    expect(s.hasUnsaved).toBe(true)
+    await new Promise((r) => setTimeout(r, 400))
+    expect(server.revision).toBe(2) // both taps reached the server
+    expect(s.hasUnsaved).toBe(false)
+  })
+
+  it('a session with nothing pending stops cleanly on dispose', () => {
+    const s = start()
+    s.dispose()
+    s.tap(0) // ignored: nothing is sent after teardown
+    expect(post).not.toHaveBeenCalled()
+  })
 })

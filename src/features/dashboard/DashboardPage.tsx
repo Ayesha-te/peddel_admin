@@ -32,7 +32,7 @@ export default function DashboardPage() {
             </>)}
           </div>
           <div className="grid gap-6 lg:grid-cols-3">
-            <div className="space-y-6 lg:col-span-2">
+            <div className="min-w-0 space-y-6 lg:col-span-2">
               <Card title="Live now" action={<Link to="/live" className="text-xs font-semibold text-court-700 hover:underline">Open scoring</Link>}>
                 {data?.live.length ? (
                   <ul className="divide-y divide-slate-100">{data.live.map((m) => (

@@ -14,7 +14,7 @@ import { MatchFormModal } from './MatchFormModal'
 import { ResultModal } from './ResultModal'
 
 const Row = ({ k, v }: { k: string; v: React.ReactNode }) => (
-  <div className="flex justify-between gap-4 border-b border-slate-100 py-2.5 text-sm last:border-0"><dt className="text-slate-500">{k}</dt><dd className="text-right font-medium text-slate-900">{v}</dd></div>
+  <div className="flex justify-between gap-4 border-b border-slate-100 py-2.5 text-sm last:border-0"><dt className="text-slate-500">{k}</dt><dd className="min-w-0 break-words text-right font-medium text-slate-900 [overflow-wrap:anywhere]">{v}</dd></div>
 )
 
 export default function MatchDetailPage() {
@@ -60,8 +60,8 @@ export default function MatchDetailPage() {
     <>
       <Link to="/matches" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800"><ArrowLeft className="h-4 w-4" /> Matches</Link>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-3"><h1 className="text-2xl font-bold text-slate-900">{m.name}</h1><StatusBadge status={m.status} /></div>
+        <div className="min-w-0">
+          <div className="flex min-w-0 flex-wrap items-center gap-3"><h1 className="min-w-0 break-words text-2xl font-bold text-slate-900 [overflow-wrap:anywhere]">{m.name}</h1><StatusBadge status={m.status} /></div>
           <p className="mt-1 text-sm text-slate-500">{m.reference} · {m.tournament ? <Link className="text-court-700 hover:underline" to={`/tournaments/${m.tournament.id}`}>{m.tournament.name}</Link> : 'Friendly match'}</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -75,7 +75,7 @@ export default function MatchDetailPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
           <Card title="Match information">
             <dl className="px-5 py-2">
               <Row k="Scheduled" v={fmtDateTime(m.scheduledAt)} />
@@ -90,7 +90,7 @@ export default function MatchDetailPage() {
           <Card title="Players">
             <div className="grid gap-4 p-5 sm:grid-cols-2">
               {m.teams.map((t, i) => (
-                <div key={i}><p className="mb-1 font-semibold text-slate-900">{t.name}</p><ul className="text-sm text-slate-600">{t.players.map((p) => <li key={p.id}>{p.name}</li>)}</ul></div>
+                <div key={i} className="min-w-0"><p className="mb-1 break-words font-semibold text-slate-900 [overflow-wrap:anywhere]">{t.name}</p><ul className="text-sm text-slate-600">{t.players.map((p) => <li key={p.id} className="break-words [overflow-wrap:anywhere]">{p.name}</li>)}</ul></div>
               ))}
             </div>
           </Card>
@@ -98,9 +98,9 @@ export default function MatchDetailPage() {
             {hist?.events.length ? (
               <ul className="divide-y divide-slate-100 text-sm">
                 {hist.events.map((e) => (
-                  <li key={e.sequence} className="flex items-center justify-between px-5 py-2.5">
-                    <span><span className="mr-2 font-mono text-xs text-slate-400">#{e.sequence}</span><span className="capitalize">{e.event_type}</span>{e.team_index != null && ` · ${m.teams[e.team_index].name}`}{e.reason && <span className="text-slate-500"> — {e.reason}</span>}</span>
-                    <time className="text-xs text-slate-400">{new Date(e.created_at).toLocaleTimeString()}</time>
+                  <li key={e.sequence} className="flex items-center justify-between gap-3 px-5 py-2.5">
+                    <span className="min-w-0 break-words [overflow-wrap:anywhere]"><span className="mr-2 font-mono text-xs text-slate-400">#{e.sequence}</span><span className="capitalize">{e.event_type}</span>{e.team_index != null && ` · ${m.teams[e.team_index].name}`}{e.reason && <span className="text-slate-500"> — {e.reason}</span>}</span>
+                    <time className="shrink-0 text-xs text-slate-400">{new Date(e.created_at).toLocaleTimeString()}</time>
                   </li>
                 ))}
               </ul>
@@ -108,7 +108,7 @@ export default function MatchDetailPage() {
           </Card>
         </div>
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <Card title="Share">
             <div className="space-y-3 p-5">
               <p className="break-all rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-600">{m.shareUrl}</p>

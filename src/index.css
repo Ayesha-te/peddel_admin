@@ -51,7 +51,7 @@ body {
     @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500;
   }
   .card {
-    @apply rounded-xl border border-slate-200 bg-white shadow-card;
+    @apply min-w-0 rounded-xl border border-slate-200 bg-white shadow-card;
   }
   .th {
     @apply whitespace-nowrap bg-slate-50 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500;

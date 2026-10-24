@@ -1,7 +1,7 @@
 import { useAuth } from '@/store/auth'
 
-export const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
-export const PUBLIC_SITE = (import.meta.env.VITE_PUBLIC_SITE_URL ?? '').replace(/\/$/, '')
+export const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'https://peddel.stride-events.net').replace(/\/$/, '')
+export const PUBLIC_SITE = (import.meta.env.VITE_PUBLIC_SITE_URL || 'https://peddel-frontend.vercel.app').replace(/\/$/, '')
 
 export class ApiError extends Error {
   status: number

@@ -10,7 +10,7 @@ import { TournamentReportButtons } from '@/features/reports/DownloadButtons'
 import { StandingsTables } from '@/features/standings/StandingsTables'
 import { useGet, useSave } from '@/hooks/query'
 import type { Fixture, Paginated, Registration, Team, Tournament } from '@/types'
-import { fmtDate } from '@/utils/format'
+import { fmtDate, formatText } from '@/utils/format'
 import { FixtureGenerator } from './FixtureGenerator'
 import { TournamentFormModal } from './TournamentFormModal'
 
@@ -84,6 +84,7 @@ export default function TournamentDetailPage() {
             {t.champion_name && <Card className="border-ball-400 bg-ball-300/20 p-5"><p className="text-xs font-bold uppercase tracking-wide text-slate-600">Champion</p><p className="text-2xl font-bold text-slate-900">🏆 {t.champion_name}</p></Card>}
           </div>
           <div className="space-y-6">
+            <Card title="Match format"><div className="space-y-1 p-5 text-sm"><p className="font-semibold text-slate-900">{formatText(t.match_format)}</p><p className="text-xs text-slate-500">Applies to every match of this tournament. The umpire can still confirm or change it for a match before it starts. Edit the tournament to change it.</p></div></Card>
             <Card title="Public page"><div className="space-y-3 p-5 text-sm">
               {t.status === 'published' || t.status === 'completed' ? (t.visibility === 'public' ? <><p className="flex items-center gap-2 font-medium text-emerald-700"><Globe className="h-4 w-4" /> Live on the public website</p><a className="break-all text-court-700 underline" href={publicUrl} target="_blank" rel="noreferrer">{publicUrl}</a></> : <p className="text-amber-700">Published but marked private - not shown publicly.</p>) : <p className="text-slate-500">Publish the tournament to make it visible on the public website.</p>}
             </div></Card>

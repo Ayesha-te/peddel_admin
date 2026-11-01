@@ -22,28 +22,61 @@ const DEFAULTS: MatchConfig = {
   superTiebreak: false, superTiebreakPoints: 10, gamesPerSet: 6, firstServer: 0,
 }
 
-export function RulesEditor({ value, onChange, disabled }: { value: MatchConfig; onChange: (c: MatchConfig) => void; disabled?: boolean }) {
+function OptionCards<T extends string | number>({ label, value, options, onChange, columns = 2 }: {
+  label: string; value: T; onChange: (v: T) => void; columns?: 2 | 3
+  options: { value: T; title: string; text: string }[]
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className={`grid gap-2 ${columns === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+      {options.map((o) => (
+        <button key={String(o.value)} type="button" role="radio" aria-checked={value === o.value} onClick={() => onChange(o.value)}
+          className={`rounded-xl border-2 px-3 py-2.5 text-left transition ${value === o.value ? 'border-court-600 bg-court-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+          <span className="block text-sm font-bold text-slate-900">{o.title}</span>
+          <span className="block text-xs text-slate-500">{o.text}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+export function RulesEditor({ value, onChange, disabled, title = 'Scoring rules', subtitle = '(default - the umpire confirms or changes this before the match starts)' }: {
+  value: MatchConfig; onChange: (c: MatchConfig) => void; disabled?: boolean; title?: string; subtitle?: string
+}) {
   const set = (p: Partial<MatchConfig>) => onChange({ ...value, ...p })
   return (
-    <fieldset disabled={disabled} className="grid gap-4 rounded-xl border border-slate-200 p-4 sm:grid-cols-2">
-      <legend className="px-2 text-sm font-bold text-slate-800">Scoring rules</legend>
-      <Field label="Format">
-        <Select value={value.bestOf} onChange={(e) => set({ bestOf: Number(e.target.value) as 1 | 3, superTiebreak: Number(e.target.value) === 3 && value.superTiebreak })}>
-          <option value={3}>Best of 3 sets</option>
-          <option value={1}>Best of 1 set</option>
-        </Select>
-      </Field>
-      <Field label="First server">
-        <Select value={value.firstServer} onChange={(e) => set({ firstServer: Number(e.target.value) as 0 | 1 })}>
-          <option value={0}>Team A</option>
-          <option value={1}>Team B</option>
-        </Select>
-      </Field>
-      <Toggle label="Golden point" hint="Sudden-death point at 40–40 instead of advantage" checked={value.goldenPoint} onChange={(v) => set({ goldenPoint: v })} />
-      <Toggle label="Tie-break at 6–6" hint="7 points, win by 2" checked={value.tiebreakEnabled} onChange={(v) => set({ tiebreakEnabled: v })} />
-      {value.bestOf === 3 && (
-        <Toggle label="Deciding-set super tie-break" hint={`First to ${value.superTiebreakPoints}, win by 2, replaces the 3rd set`} checked={value.superTiebreak} onChange={(v) => set({ superTiebreak: v })} />
-      )}
+    <fieldset disabled={disabled} className="space-y-4 rounded-xl border border-slate-200 p-4">
+      <legend className="px-2 text-sm font-bold text-slate-800">{title} <span className="font-normal text-slate-500">{subtitle}</span></legend>
+      <div>
+        <span className="label">Number of sets</span>
+        <OptionCards<1 | 3 | 5> label="Number of sets" value={value.bestOf} columns={3}
+          onChange={(v) => set({ bestOf: v, superTiebreak: v > 1 && value.superTiebreak })}
+          options={[
+            { value: 1, title: 'Best of 1', text: 'One set' },
+            { value: 3, title: 'Best of 3', text: 'First to win 2 sets' },
+            { value: 5, title: 'Best of 5', text: 'First to win 3 sets' },
+          ]} />
+      </div>
+      <div>
+        <span className="label">When a game reaches 40–40</span>
+        <OptionCards<'deuce' | 'golden'> label="Game format at 40-40" value={value.goldenPoint ? 'golden' : 'deuce'}
+          onChange={(v) => set({ goldenPoint: v === 'golden' })}
+          options={[
+            { value: 'deuce', title: 'Deuce (advantage)', text: 'Deuce, then advantage: win two points in a row to take the game' },
+            { value: 'golden', title: 'Golden point', text: 'The first point after 40–40 wins the game' },
+          ]} />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Toggle label="Tie-break at 6–6" hint="7 points, win by 2" checked={value.tiebreakEnabled} onChange={(v) => set({ tiebreakEnabled: v })} />
+        {value.bestOf > 1 && (
+          <Toggle label="Deciding-set super tie-break" hint={`First to ${value.superTiebreakPoints}, win by 2, replaces the last set`} checked={value.superTiebreak} onChange={(v) => set({ superTiebreak: v })} />
+        )}
+        <Field label="First server">
+          <Select value={value.firstServer} onChange={(e) => set({ firstServer: Number(e.target.value) as 0 | 1 })}>
+            <option value={0}>Team A</option>
+            <option value={1}>Team B</option>
+          </Select>
+        </Field>
+      </div>
     </fieldset>
   )
 }

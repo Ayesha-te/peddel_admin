@@ -23,8 +23,9 @@ export default function MatchDetailPage() {
   const qc = useQueryClient()
   const { isAdmin } = useRole()
   const path = `/api/admin/matches/${id}/`
-  const { data: m, isLoading, error, refetch } = useGet<Match>(path, undefined, { refetchInterval: 15000 })
-  const { data: hist } = useGet<{ events: { sequence: number; event_type: string; team_index: number | null; created_at: string; reason: string }[] }>(`${path}history/`, { limit: 15 })
+  const [gone, setGone] = useState(false) // true once this match has been deleted: stop fetching it
+  const { data: m, isLoading, error, refetch } = useGet<Match>(path, undefined, { refetchInterval: gone ? undefined : 15000, enabled: !gone })
+  const { data: hist } = useGet<{ events: { sequence: number; event_type: string; team_index: number | null; created_at: string; reason: string }[] }>(`${path}history/`, { limit: 15 }, { enabled: !gone })
   const [edit, setEdit] = useState(false)
   const [result, setResult] = useState(false)
   const [del, setDel] = useState(false)
@@ -36,7 +37,15 @@ export default function MatchDetailPage() {
   const refresh = ['/api/admin/matches', '/api/admin/dashboard', '/api/admin/tournaments']
   const status = useSave((s: string) => api.post(`${path}status/`, { status: s }), { invalidate: refresh, success: 'Status updated' })
   const verify = useSave(() => api.post(`${path}verify/`), { invalidate: refresh, success: 'Result verified' })
-  const remove = useSave(() => api.del(path), { invalidate: refresh, success: 'Match deleted', onSuccess: () => nav('/matches') })
+  // Deleting: forget this match's own queries (so nothing re-fetches a record that no longer exists), refresh lists, then leave.
+  const remove = useSave(() => api.del(path), {
+    success: 'Match deleted',
+    onSuccess: () => {
+      setGone(true)
+      qc.invalidateQueries({ predicate: (q) => typeof q.queryKey[0] === 'string' && refresh.some((p) => (q.queryKey[0] as string).startsWith(p)) && !(q.queryKey[0] as string).startsWith(path) })
+      nav('/matches')
+    },
+  })
 
   if (isLoading) return <div className="space-y-4"><Skeleton className="h-8 w-1/3" /><Skeleton className="h-48" /></div>
   if (error || !m) return <ErrorState error={error} retry={() => refetch()} />
@@ -81,7 +90,7 @@ export default function MatchDetailPage() {
               <Row k="Scheduled" v={fmtDateTime(m.scheduledAt)} />
               <Row k="Court" v={m.court?.name ?? '—'} />
               <Row k="Umpire" v={m.umpire?.name ?? '—'} />
-              <Row k="Format" v={`Best of ${m.config.bestOf}${m.config.goldenPoint ? ' · golden point' : ' · advantage'}${m.config.superTiebreak ? ' · super tie-break decider' : ''}`} />
+              <Row k="Format" v={`Best of ${m.config.bestOf}${m.config.goldenPoint ? ' · golden point' : ' · deuce (advantage)'}${m.config.superTiebreak ? ' · super tie-break decider' : ''}`} />
               <Row k="Duration" v={m.startedAt ? fmtDuration(m.durationSeconds) : '—'} />
               <Row k="Revision" v={m.revision} />
               {completed && <Row k="Result" v={m.resultVerified ? <span className="inline-flex items-center gap-1 text-emerald-700"><BadgeCheck className="h-4 w-4" /> Verified</span> : 'Awaiting verification'} />}

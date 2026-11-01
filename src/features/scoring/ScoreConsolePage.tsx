@@ -9,6 +9,7 @@ import { useGet } from '@/hooks/query'
 import type { Match } from '@/types'
 import { fmtDuration } from '@/utils/format'
 import { useClock, useMatchSocket, useOnline, useScoreSession, toConfirmed } from './hooks'
+import { MatchSetup } from './MatchSetup'
 import { Scoreboard } from './Scoreboard'
 import type { ScoreSession, View } from './ScoreSession'
 import { setsWon } from './engine'
@@ -39,6 +40,7 @@ export default function ScoreConsolePage() {
   const wrapRef = useRef<HTMLDivElement>(null)
   const [full, setFull] = useState(false)
   const [endOpen, setEndOpen] = useState(false)
+  const [setupDone, setSetupDone] = useState(false)
 
   const sessionRef = useRef<ScoreSession | null>(null)
   const reconcile = useCallback(async () => {
@@ -77,6 +79,13 @@ export default function ScoreConsolePage() {
   const [sa, sb] = setsWon(view.state)
   const disabled = !view.canScore
   const teams = match.teams
+  // Before the first point the umpire decides the format (best of 1 / 3 / 5 ...) for THIS match.
+  const needsSetup = !setupDone && view.revision === 0 && view.pending === 0 && ['draft', 'scheduled', 'ready'].includes(view.status)
+  const onSetupDone = (fresh: Match) => {
+    qc.setQueryData([path, null], fresh)
+    sessionRef.current?.reset(toConfirmed(fresh))
+    setSetupDone(true)
+  }
 
   return (
     <div ref={wrapRef} className="mx-auto flex min-h-screen min-w-0 max-w-4xl flex-col gap-4 overflow-x-hidden bg-ink-950 p-3 sm:p-6">
@@ -85,7 +94,7 @@ export default function ScoreConsolePage() {
           <Link to={`/matches/${match.id}`} className="rounded-lg p-2 text-slate-400 hover:bg-white/10 hover:text-white" aria-label="Back to match"><ArrowLeft className="h-5 w-5" /></Link>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-base font-bold text-white sm:text-lg">{match.name}</h1>
-            <p className="truncate text-xs text-slate-400">{match.court?.name ?? 'No court'} · {match.tournament?.name ?? 'Friendly'} · {match.config.bestOf === 1 ? 'Best of 1' : 'Best of 3'}{match.config.goldenPoint ? ' · Golden point' : ''}</p>
+            <p className="truncate text-xs text-slate-400">{match.court?.name ?? 'No court'} · {match.tournament?.name ?? 'Friendly'} · Best of {view.config.bestOf}{view.config.goldenPoint ? ' · Golden point' : ' · Deuce'}</p>
           </div>
           <button onClick={toggleFull} className="rounded-lg p-2 text-slate-400 hover:bg-white/10 hover:text-white" aria-label={full ? 'Exit full screen' : 'Full screen'}>
             {full ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
@@ -108,6 +117,7 @@ export default function ScoreConsolePage() {
         </div>
       )}
 
+      {needsSetup ? <MatchSetup match={match} onStarted={onSetupDone} /> : <>
       <Scoreboard teams={teams} state={view.state} display={view.display} large={full} />
 
       {done ? (
@@ -158,6 +168,7 @@ export default function ScoreConsolePage() {
           <Flag className="h-5 w-5" /> End match
         </Button>
       </div>
+      </>}
 
       <Modal open={endOpen} onClose={() => setEndOpen(false)} title="End match now?" footer={<Button variant="secondary" onClick={() => setEndOpen(false)}>Keep playing</Button>}>
         <p className="mb-4 text-sm text-slate-600">This finishes the match immediately (for example a retirement). Choose the winner. This cannot be undone here — use the result correction on the match page if needed.</p>

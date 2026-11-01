@@ -54,7 +54,7 @@ export interface SetScore {
 }
 
 export interface MatchConfig {
-  bestOf: 1 | 3
+  bestOf: 1 | 3 | 5
   goldenPoint: boolean
   tiebreakEnabled: boolean
   tiebreakAt: number

@@ -38,7 +38,7 @@ test('admin UI sweep: every page and button', async ({ page }) => {
     await page.getByLabel('Password').fill(PASS)
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
-    for (const n of ['Tournaments', 'Upcoming matches', 'Live matches', 'Completed matches', 'Registered players', 'Registered teams']) await expect(page.locator('main').getByText(n, { exact: true })).toBeVisible()
+    for (const n of ['Tournaments', 'Upcoming matches', 'Live matches', 'Completed matches', 'Registered players', 'Registered teams']) await expect(page.locator('main').getByText(n, { exact: true }).first()).toBeVisible()
   })
 
   // ---------- Players
@@ -197,6 +197,8 @@ test('admin UI sweep: every page and button', async ({ page }) => {
   await step(page, 'console: points, undo, pause/resume, fullscreen, end match', async () => {
     await page.goto(matchUrl)
     await page.getByRole('link', { name: /Start scoring/ }).click()
+    await page.getByRole('radio', { name: /best of 3/i }).click() // umpire decides the format at match time
+    await page.getByRole('button', { name: /start match/i }).click()
     const a = page.getByRole('button', { name: /Point for/ }).first()
     const b = page.getByRole('button', { name: /Point for/ }).nth(1)
     await a.click(); await page.waitForTimeout(200); await a.click(); await page.waitForTimeout(200); await b.click()

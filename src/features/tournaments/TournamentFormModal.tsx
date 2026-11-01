@@ -126,7 +126,7 @@ export function TournamentFormModal({ item, onClose, onSaved }: { item?: Tournam
             )}
           </fieldset>
         )}
-        <RulesEditor value={fmt} onChange={setFmt} />
+        <RulesEditor value={fmt} onChange={setFmt} title="Match format for every match in this tournament" subtitle="(number of sets and deuce / golden point - the umpire can still confirm or change it for a match before it starts)" />
       </form>
     </Modal>
   )

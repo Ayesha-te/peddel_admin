@@ -11,17 +11,19 @@ export function useScoreSession(match: Match | undefined, onReconcile: () => voi
   const [session, setSession] = useState<ScoreSession | null>(null)
   const reconcile = useRef(onReconcile)
   reconcile.current = onReconcile
+  const latest = useRef(match)
+  latest.current = match
   const id = match?.id
-  const seeded = useRef<number | null>(null)
+  const loaded = !!match
 
+  // One session per match id. Safe under React StrictMode (mount -> cleanup -> mount): every mount creates a fresh
+  // session and every cleanup disposes the one it created, so a disposed session can never be reused.
   useEffect(() => {
-    if (!match || id === undefined || seeded.current === id) return
-    seeded.current = id
-    const s = new ScoreSession(id, toConfirmed(match), () => reconcile.current())
+    if (!loaded || latest.current === undefined) return
+    const s = new ScoreSession(latest.current.id, toConfirmed(latest.current), () => reconcile.current())
     setSession(s)
     return () => s.dispose()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, !!match])
+  }, [id, loaded])
 
   const view = useSyncExternalStore(
     session ? session.subscribe : () => () => {},

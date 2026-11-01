@@ -28,6 +28,15 @@ async function uiLogin(page: Page, username: string, password: string) {
   await page.waitForURL((u) => !u.pathname.startsWith('/login'))
 }
 
+
+/** The umpire decides the format at match time: pick best-of-N on the setup card and start. */
+async function startMatch(page: Page, bestOf: 1 | 3 | 5) {
+  await expect(page.getByRole('radiogroup', { name: /match format/i })).toBeVisible()
+  await page.getByRole('radio', { name: new RegExp(`best of ${bestOf}`, 'i') }).click()
+  await page.getByRole('button', { name: /start match/i }).click()
+  await expect(page.getByRole('button', { name: /Point for/ }).first()).toBeVisible()
+}
+
 async function newContext(browser: Browser, admin = false): Promise<BrowserContext> {
   return browser.newContext({ acceptDownloads: true, storageState: admin ? ADMIN_STATE : undefined })
 }
@@ -69,7 +78,8 @@ test.describe.serial('padel end-to-end journey', () => {
     await page.locator('select[name="format"]').selectOption('groups_knockout')
     await page.locator('input[name="groups_count"]').fill('2')
     await page.locator('input[name="qualifiers_per_group"]').fill('1')
-    await page.locator('select').filter({ hasText: 'Best of 1 set' }).selectOption('1')
+    await page.getByRole('radio', { name: /^Best of 1/ }).click() // the tournament decides the format of all its matches
+    await page.getByRole('radio', { name: /^Golden point/ }).click()
     await page.getByRole('button', { name: 'Create tournament' }).click()
     await expect(page).toHaveURL(/\/tournaments\/\d+$/)
     state.tournamentId = Number(page.url().split('/').pop())
@@ -139,7 +149,7 @@ test.describe.serial('padel end-to-end journey', () => {
     await ump.goto(`${ADMIN}/players`)
     await expect(ump).toHaveURL(/\/live/)
     await ump.getByRole('link', { name: /Start scoring/ }).first().click()
-    await expect(ump.getByRole('button', { name: /Point for/ }).first()).toBeVisible()
+    await startMatch(ump, 1) // umpire decides: best of 1 set for this one
 
     const teamA = ump.getByRole('button', { name: /Point for/ }).first()
     const tap = async (n: number) => { for (let i = 0; i < n; i++) { await teamA.click(); await ump.waitForTimeout(160) } }
@@ -244,6 +254,7 @@ test.describe.serial('padel end-to-end journey', () => {
     const page = await ctx.newPage()
     await uiLogin(page, state.umpire!, UMPIRE_PASS)
     await page.goto(`${ADMIN}/score/${match.id}`)
+    await startMatch(page, 1)
     const teamA = page.getByRole('button', { name: /Point for/ }).first()
     const tap = async (n: number) => { for (let i = 0; i < n; i++) { await teamA.click(); await page.waitForTimeout(160) } }
 
@@ -270,6 +281,102 @@ test.describe.serial('padel end-to-end journey', () => {
     expect(Date.now() - before).toBeLessThan(800)
     await expect(page.getByText(/Saving/)).toBeVisible()
     await expect(page.getByText(/Saved · r5/)).toBeVisible({ timeout: 15_000 })
+    await ctx.close()
+  })
+
+  test('11. umpire chooses best of 5 at match time; system plays best of 5 and the choice is saved', async ({ browser }) => {
+    const users = await (await state.api!.get(`/api/admin/users/?role=umpire&search=${state.umpire}`, { headers: auth() })).json()
+    const mk = await state.api!.post('/api/admin/matches/', {
+      headers: auth(),
+      data: { name: `E2E bo5 ${run}`, umpire: users.results[0].id, // created with the default best of 3...
+        team_a: { players: [{ first_name: 'Five' }, { first_name: 'Sets' }] }, team_b: { players: [{ first_name: 'Long' }, { first_name: 'Match' }] } },
+    })
+    const match = await mk.json()
+    expect(match.config.bestOf).toBe(3)
+    const ctx = await newContext(browser)
+    const page = await ctx.newPage()
+    await uiLogin(page, state.umpire!, UMPIRE_PASS)
+    await page.goto(`${ADMIN}/score/${match.id}`)
+    await expect(page.getByRole('radio', { name: /best of 3/i })).toHaveAttribute('aria-checked', 'true') // default shown
+    await startMatch(page, 5) // ...but the umpire decides best of 5
+    await expect(page.getByText(/Best of 5/).first()).toBeVisible()
+    const a = page.getByRole('button', { name: /Point for/ }).first()
+    for (let i = 0; i < 4; i++) { await a.click(); await page.waitForTimeout(160) } // team A wins the first game
+    await expect(page.getByText(/Saved · r4/)).toBeVisible({ timeout: 15000 })
+    // saved in the database
+    const saved = await (await state.api!.get(`/api/admin/matches/${match.id}/`, { headers: auth() })).json()
+    expect(saved.config.bestOf).toBe(5)
+    expect(saved.state.games).toEqual([1, 0])
+    // after a reload the setup card is gone (rules are locked once play started) and the format is still best of 5
+    await page.reload()
+    await expect(page.getByRole('radiogroup', { name: /match format/i })).toHaveCount(0)
+    await expect(page.getByText(/Best of 5/).first()).toBeVisible()
+    // and the server refuses to change it now
+    const late = await state.api!.post(`/api/admin/matches/${match.id}/rules/`, { headers: auth(), data: { bestOf: 1 } })
+    expect(late.status()).toBe(409)
+    // the public spectator page shows best of 5
+    const pub = await (await state.api!.get(`/api/public/matches/${saved.publicId}/`)).json()
+    expect(pub.config.bestOf).toBe(5)
+    await ctx.close()
+  })
+
+  test('12. tournament defines best of 5 + golden point at creation; matches inherit it; umpire can override; public sees it', async ({ page, browser }) => {
+    // --- admin creates the tournament in the UI, choosing the match format for ALL its matches
+    await page.goto(`${ADMIN}/tournaments?new=1`)
+    await page.getByLabel('Tournament name').fill(`E2E Format Cup ${run}`)
+    await page.locator('select[name="format"]').selectOption('round_robin')
+    await page.getByRole('radio', { name: /^Best of 5/ }).click()
+    await page.getByRole('radio', { name: /^Golden point/ }).click()
+    await page.getByRole('button', { name: 'Create tournament' }).click()
+    await expect(page).toHaveURL(/\/tournaments\/\d+$/)
+    const tid = Number(page.url().split('/').pop())
+    await expect(page.getByText('Best of 5 sets · Golden point').first()).toBeVisible() // shown on the tournament page
+    // --- teams, fixtures
+    for (const team of state.teamIds.slice(0, 3)) {
+      const r = await state.api!.post(`/api/admin/tournaments/${tid}/registrations/`, { data: { team_id: team }, headers: auth() })
+      expect(r.ok()).toBeTruthy()
+    }
+    const conf = await state.api!.post(`/api/admin/tournaments/${tid}/fixtures/confirm/`, { data: { seed: 1 }, headers: auth() })
+    expect(conf.status()).toBe(201)
+    const ms = await (await state.api!.get(`/api/admin/matches/?tournament=${tid}&page_size=50`, { headers: auth() })).json()
+    expect(ms.count).toBe(3)
+    for (const m of ms.results) {
+      expect(m.config.bestOf).toBe(5) // every match inherited the tournament's format
+      expect(m.config.goldenPoint).toBe(true)
+    }
+    // --- publish: the public tournament page shows the format
+    await state.api!.post(`/api/admin/tournaments/${tid}/set-status/`, { data: { status: 'published' }, headers: auth() })
+    const slug = (await (await state.api!.get(`/api/admin/tournaments/${tid}/`, { headers: auth() })).json()).slug
+    const pub = await browser.newContext()
+    const pp = await pub.newPage()
+    await pp.goto(`${PUBLIC}/public-tournaments/${slug}`)
+    await expect(pp.getByText('Best of 5 sets · Golden point')).toBeVisible()
+    await pub.close()
+    // --- the umpire sees the tournament's choice as the default on the setup card and can change it
+    const users = await (await state.api!.get(`/api/admin/users/?role=umpire&search=${state.umpire}`, { headers: auth() })).json()
+    const matchId = ms.results[0].id
+    await state.api!.patch(`/api/admin/matches/${matchId}/`, { data: { umpire: users.results[0].id }, headers: auth() })
+    const ctx = await newContext(browser)
+    const ump = await ctx.newPage()
+    await uiLogin(ump, state.umpire!, UMPIRE_PASS)
+    await ump.goto(`${ADMIN}/score/${matchId}`)
+    await expect(ump.getByRole('radio', { name: /best of 5/i })).toHaveAttribute('aria-checked', 'true')
+    await expect(ump.getByRole('radio', { name: /golden point/i })).toHaveAttribute('aria-checked', 'true')
+    await ump.getByRole('radio', { name: /^deuce/i }).click() // umpire decides: this match uses deuce
+    await ump.getByRole('button', { name: /start match.*deuce/i }).click()
+    const a = ump.getByRole('button', { name: /Point for/ }).first()
+    const b = ump.getByRole('button', { name: /Point for/ }).nth(1)
+    for (const btn of [a, a, a, b, b, b]) { await btn.click(); await ump.waitForTimeout(170) } // 40-40
+    await expect(ump.getByText('Deuce', { exact: true })).toBeVisible()
+    await a.click()
+    await expect(ump.getByText('Advantage')).toBeVisible() // deuce rules: one point is not enough
+    await expect(ump.getByText(/Saved · r7/)).toBeVisible({ timeout: 15000 })
+    const saved = await (await state.api!.get(`/api/admin/matches/${matchId}/`, { headers: auth() })).json()
+    expect(saved.config.goldenPoint).toBe(false) // saved to the database
+    expect(saved.config.bestOf).toBe(5)
+    // another match of the same tournament keeps golden point (override is per match)
+    const other = await (await state.api!.get(`/api/admin/matches/${ms.results[1].id}/`, { headers: auth() })).json()
+    expect(other.config.goldenPoint).toBe(true)
     await ctx.close()
   })
 

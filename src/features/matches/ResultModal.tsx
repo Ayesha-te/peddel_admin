@@ -9,7 +9,7 @@ const blank = (): Row => ({ a: '', b: '', ta: '', tb: '' })
 
 /** Manual result entry / audited correction. The backend validates every score again. */
 export function ResultModal({ match, onClose }: { match: Match; onClose: () => void }) {
-  const maxSets = match.config.bestOf
+  const maxSets = 2 * (Math.floor(match.config.bestOf / 2) + 1) - 1 // most sets that can be played in a best-of-N
   const [rows, setRows] = useState<Row[]>(() =>
     match.state.completed && match.state.sets.length
       ? match.state.sets.map((s) => ({ a: String(s.games[0]), b: String(s.games[1]), ta: s.tiebreak ? String(s.tiebreak[0]) : '', tb: s.tiebreak ? String(s.tiebreak[1]) : '' }))

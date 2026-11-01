@@ -26,7 +26,7 @@ describe('MatchSetup (umpire decides the format at match time)', () => {
     post.mockResolvedValue({ ...match })
     const onStarted = vi.fn()
     render(<MatchSetup match={match} onStarted={onStarted} />)
-    const group = screen.getByRole('radiogroup', { name: /match format/i })
+    const group = screen.getByRole('radiogroup', { name: /number of sets/i })
     expect(group.querySelectorAll('[role=radio]')).toHaveLength(3)
     expect(screen.getByRole('radio', { name: /best of 3/i })).toHaveAttribute('aria-checked', 'true')
     await userEvent.click(screen.getByRole('button', { name: /start match/i }))
@@ -74,6 +74,19 @@ describe('MatchSetup (umpire decides the format at match time)', () => {
     expect(screen.getByRole('radio', { name: /golden point/i })).toHaveAttribute('aria-checked', 'true')
   })
 
+  it('lets the umpire type any number of sets (e.g. 8) and sends it', async () => {
+    post.mockResolvedValue({ ...match })
+    render(<MatchSetup match={match} onStarted={vi.fn()} />)
+    const box = screen.getByRole('spinbutton', { name: /custom number of sets/i })
+    await userEvent.clear(box)
+    await userEvent.type(box, '8')
+    expect(screen.getByText(/first to win 5 sets/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /start match · best of 8 sets/i })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /start match/i }))
+    await waitFor(() => expect(post).toHaveBeenCalled())
+    expect(post.mock.calls[0][1]).toMatchObject({ bestOf: 8 })
+  })
+
   it('best of 1 hides the super tie-break option and never sends it', async () => {
     post.mockResolvedValue({ ...match })
     render(<MatchSetup match={{ ...match, config: { ...cfg, superTiebreak: true } } as Match} onStarted={vi.fn()} />)
@@ -108,8 +121,9 @@ describe('engine: best of 5', () => {
     s = winSet(s, 1)
     expect(s.completed && s.winner === 1 && s.sets.length === 5).toBe(true)
   })
-  it('accepts only 1, 3 or 5', () => {
-    expect(() => normalizeConfig({ bestOf: 7 as never })).toThrow()
+  it('accepts any whole number of sets from 1 to 21 only', () => {
+    expect(() => normalizeConfig({ bestOf: 22 as never })).toThrow()
+    expect(normalizeConfig({ bestOf: 7 }).bestOf).toBe(7)
     expect(normalizeConfig({ bestOf: 5, superTiebreak: true }).superTiebreak).toBe(true)
     expect(normalizeConfig({ bestOf: 1, superTiebreak: true }).superTiebreak).toBe(false)
   })

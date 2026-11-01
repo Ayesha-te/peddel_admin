@@ -29,7 +29,7 @@ export class EngineError extends Error {
 
 export function normalizeConfig(cfg: Partial<MatchConfig> = {}): MatchConfig {
   const c = { ...DEFAULT_CONFIG, ...cfg }
-  if (c.bestOf !== 1 && c.bestOf !== 3 && c.bestOf !== 5) throw new EngineError('invalid_config', 'bestOf must be 1, 3 or 5')
+  if (typeof c.bestOf !== 'number' || !Number.isInteger(c.bestOf) || c.bestOf < 1 || c.bestOf > 21) throw new EngineError('invalid_config', 'bestOf must be a whole number between 1 and 21')
   c.goldenPoint = !!c.goldenPoint
   c.tiebreakEnabled = !!c.tiebreakEnabled
   c.superTiebreak = !!c.superTiebreak && c.bestOf > 1

@@ -25,6 +25,17 @@ describe('RulesEditor (match and tournament forms)', () => {
     expect(screen.queryByText(/super tie-break/i)).toBeNull() // not offered for a single set
   })
 
+  it('lets the organiser type any number of sets (match and tournament forms)', async () => {
+    let last: MatchConfig | undefined
+    render(<Harness onChange={(c) => (last = c)} />)
+    const box = screen.getByRole('spinbutton', { name: /custom number of sets/i })
+    await userEvent.clear(box)
+    await userEvent.type(box, '8')
+    expect(last?.bestOf).toBe(8)
+    expect(screen.getByText(/first to win 5 sets/i)).toBeInTheDocument()
+    expect(screen.getByText(/super tie-break/i)).toBeInTheDocument() // offered for any multi-set format
+  })
+
   it('lets the organiser choose deuce or golden point, and explains each', async () => {
     let last: MatchConfig | undefined
     render(<Harness onChange={(c) => (last = c)} />)

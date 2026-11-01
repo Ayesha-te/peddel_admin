@@ -31,7 +31,7 @@ async function uiLogin(page: Page, username: string, password: string) {
 
 /** The umpire decides the format at match time: pick best-of-N on the setup card and start. */
 async function startMatch(page: Page, bestOf: 1 | 3 | 5) {
-  await expect(page.getByRole('radiogroup', { name: /match format/i })).toBeVisible()
+  await expect(page.getByRole('radiogroup', { name: /number of sets/i })).toBeVisible()
   await page.getByRole('radio', { name: new RegExp(`best of ${bestOf}`, 'i') }).click()
   await page.getByRole('button', { name: /start match/i }).click()
   await expect(page.getByRole('button', { name: /Point for/ }).first()).toBeVisible()
@@ -309,7 +309,7 @@ test.describe.serial('padel end-to-end journey', () => {
     expect(saved.state.games).toEqual([1, 0])
     // after a reload the setup card is gone (rules are locked once play started) and the format is still best of 5
     await page.reload()
-    await expect(page.getByRole('radiogroup', { name: /match format/i })).toHaveCount(0)
+    await expect(page.getByRole('radiogroup', { name: /number of sets/i })).toHaveCount(0)
     await expect(page.getByText(/Best of 5/).first()).toBeVisible()
     // and the server refuses to change it now
     const late = await state.api!.post(`/api/admin/matches/${match.id}/rules/`, { headers: auth(), data: { bestOf: 1 } })
@@ -377,6 +377,53 @@ test.describe.serial('padel end-to-end journey', () => {
     // another match of the same tournament keeps golden point (override is per match)
     const other = await (await state.api!.get(`/api/admin/matches/${ms.results[1].id}/`, { headers: auth() })).json()
     expect(other.config.goldenPoint).toBe(true)
+    await ctx.close()
+  })
+
+  test('13. admin TYPES the number of sets in the tournament form; matches inherit it; umpire types a different number', async ({ page, browser }) => {
+    await page.goto(`${ADMIN}/tournaments?new=1`)
+    await page.getByLabel('Tournament name').fill(`E2E Custom Sets ${run}`)
+    await page.locator('select[name="format"]').selectOption('round_robin')
+    const box = page.getByRole('spinbutton', { name: /custom number of sets/i })
+    await box.fill('7')
+    await expect(page.getByText('First to win 4 sets')).toBeVisible()
+    // (letters cannot even be typed: it is a numeric field)
+    await box.fill('')
+    await expect(page.getByText(/whole number from 1 to 21/i)).toBeVisible()
+    await box.fill('8')
+    await expect(page.getByText(/first to win 5 sets/i)).toBeVisible()
+    await page.getByRole('button', { name: 'Create tournament' }).click()
+    await expect(page).toHaveURL(/\/tournaments\/\d+$/)
+    const tid = Number(page.url().split('/').pop())
+    await expect(page.getByText('Best of 8 sets').first()).toBeVisible()
+    for (const team of state.teamIds.slice(0, 2)) {
+      await state.api!.post(`/api/admin/tournaments/${tid}/registrations/`, { data: { team_id: team }, headers: auth() })
+    }
+    expect((await state.api!.post(`/api/admin/tournaments/${tid}/fixtures/confirm/`, { data: { seed: 1 }, headers: auth() })).status()).toBe(201)
+    const ms = await (await state.api!.get(`/api/admin/matches/?tournament=${tid}&page_size=10`, { headers: auth() })).json()
+    expect(ms.results.map((m: { config: { bestOf: number } }) => m.config.bestOf)).toEqual([8])
+    // edit the tournament and type another number: the unstarted match follows
+    await page.getByRole('button', { name: 'Edit', exact: true }).click()
+    await page.getByRole('spinbutton', { name: /custom number of sets/i }).fill('9')
+    await page.getByRole('button', { name: 'Save changes' }).click()
+    await expect(page.getByText('Best of 9 sets').first()).toBeVisible()
+    const after = await (await state.api!.get(`/api/admin/matches/${ms.results[0].id}/`, { headers: auth() })).json()
+    expect(after.config.bestOf).toBe(9)
+    // the umpire sees the tournament's number and types his own
+    const users = await (await state.api!.get(`/api/admin/users/?role=umpire&search=${state.umpire}`, { headers: auth() })).json()
+    await state.api!.patch(`/api/admin/matches/${ms.results[0].id}/`, { data: { umpire: users.results[0].id }, headers: auth() })
+    const ctx = await newContext(browser)
+    const ump = await ctx.newPage()
+    await uiLogin(ump, state.umpire!, UMPIRE_PASS)
+    await ump.goto(`${ADMIN}/score/${ms.results[0].id}`)
+    await expect(ump.getByRole('spinbutton', { name: /custom number of sets/i })).toHaveValue('9')
+    await ump.getByRole('spinbutton', { name: /custom number of sets/i }).fill('4')
+    await expect(ump.getByText(/first to win 3 sets/i)).toBeVisible()
+    await ump.getByRole('button', { name: /start match · best of 4 sets/i }).click()
+    await expect(ump.getByRole('button', { name: /Point for/ }).first()).toBeVisible()
+    await expect(ump.getByText(/Best of 4/).first()).toBeVisible()
+    const saved = await (await state.api!.get(`/api/admin/matches/${ms.results[0].id}/`, { headers: auth() })).json()
+    expect(saved.config.bestOf).toBe(4)
     await ctx.close()
   })
 

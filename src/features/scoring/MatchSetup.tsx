@@ -4,14 +4,9 @@ import { useState } from 'react'
 import { api } from '@/api/client'
 import { toast } from '@/components/toast'
 import { Button, Spinner } from '@/components/ui'
+import { SetsPicker } from '@/features/matches/SetsPicker'
 import type { Match, MatchConfig } from '@/types'
 import { errorMessage } from '@/utils/format'
-
-const SETS: { value: 1 | 3 | 5; label: string; hint: string }[] = [
-  { value: 1, label: 'Best of 1', hint: 'one set' },
-  { value: 3, label: 'Best of 3', hint: 'first to 2 sets' },
-  { value: 5, label: 'Best of 5', hint: 'first to 3 sets' },
-]
 
 function Switch({ label, hint, checked, onChange }: { label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -61,17 +56,7 @@ export function MatchSetup({ match, onStarted }: { match: Match; onStarted: (m: 
         <p className="mt-1 text-sm text-slate-400">You decide the format for this match. It cannot be changed once the first point is played.</p>
       </header>
 
-      <div role="radiogroup" aria-label="Match format" className="grid grid-cols-3 gap-2 sm:gap-3">
-        {SETS.map((s) => (
-          <button key={s.value} type="button" role="radio" aria-checked={cfg.bestOf === s.value}
-            onClick={() => set({ bestOf: s.value, superTiebreak: s.value > 1 && cfg.superTiebreak })}
-            className={clsx('flex min-h-[88px] flex-col items-center justify-center rounded-xl border-2 px-2 py-3 text-center transition active:scale-[0.98]',
-              cfg.bestOf === s.value ? 'border-ball-400 bg-ball-400 text-ink-950' : 'border-white/15 bg-white/5 text-white hover:bg-white/10')}>
-            <span className="text-lg font-extrabold sm:text-xl">{s.label}</span>
-            <span className={clsx('text-xs', cfg.bestOf === s.value ? 'text-ink-800' : 'text-slate-400')}>{s.hint}</span>
-          </button>
-        ))}
-      </div>
+      <SetsPicker dark value={cfg.bestOf} onChange={(n) => set({ bestOf: n, superTiebreak: n > 1 && cfg.superTiebreak })} />
 
       <div>
         <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">When a game reaches 40–40</p>

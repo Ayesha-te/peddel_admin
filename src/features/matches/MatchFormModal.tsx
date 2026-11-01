@@ -8,6 +8,7 @@ import { useGet, useSave } from '@/hooks/query'
 import type { Court, Match, MatchConfig, Paginated, User } from '@/types'
 import { fromLocalInput, toLocalInput } from '@/utils/format'
 import { emptySide, SideEditor, sideError, sidePayload, type SideValue } from './SideEditor'
+import { SetsPicker } from './SetsPicker'
 
 const schema = z.object({
   name: z.string().trim().min(2, 'Give the match a name').max(140),
@@ -48,13 +49,7 @@ export function RulesEditor({ value, onChange, disabled, title = 'Scoring rules'
       <legend className="px-2 text-sm font-bold text-slate-800">{title} <span className="font-normal text-slate-500">{subtitle}</span></legend>
       <div>
         <span className="label">Number of sets</span>
-        <OptionCards<1 | 3 | 5> label="Number of sets" value={value.bestOf} columns={3}
-          onChange={(v) => set({ bestOf: v, superTiebreak: v > 1 && value.superTiebreak })}
-          options={[
-            { value: 1, title: 'Best of 1', text: 'One set' },
-            { value: 3, title: 'Best of 3', text: 'First to win 2 sets' },
-            { value: 5, title: 'Best of 5', text: 'First to win 3 sets' },
-          ]} />
+        <SetsPicker value={value.bestOf} onChange={(n) => set({ bestOf: n, superTiebreak: n > 1 && value.superTiebreak })} />
       </div>
       <div>
         <span className="label">When a game reaches 40–40</span>
